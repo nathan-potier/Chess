@@ -1,206 +1,318 @@
-class Plateau:
-    def __init__(self):
-        self.plateau = [[None for _ in range(8)] for _ in range(8)]
-        self.initialiser_plateau()
 
-    def initialiser_plateau(self):
-        """Initialise les pièces sur l'échiquier."""
-        # Placement des pions
-        for i in range(8):
-            self.plateau[1][i] = Pion("Blanc", (1, i))
-            self.plateau[6][i] = Pion("Noir", (6, i))
+"""
+class :
+    Joueur 
+    Plateau
+    Piece
+        Roi
+        Fou
+        Reine
+        Cavalier
+        Tour
+        Pion
+    Game
+    victoire/defaite/egalite
+"""
 
-        # Placement des autres pièces
-        pieces = [Tour, Cavalier, Fou, Dame, Roi, Fou, Cavalier, Tour]
-        for i, piece in enumerate(pieces):
-            self.plateau[0][i] = piece("Blanc", (0, i))
-            self.plateau[7][i] = piece("Noir", (7, i))
+class Plateau :
+
+    def __init__(self) :
+
+        self.plateau = [[None for i in range(8)] for y in range(8)]
+        self.initialiseur_plateau()
+        
+    def initialiseur_plateau(self):
+
+        ordre_piece = [Tour,Cavalier,Fou,Dame,Roi,Fou,Cavalier,Tour]
+
+        for i in range(8) :
+            self.plateau[1][i] = Pion("noir", (i,1))
+            self.plateau[-2][i] = Pion("blanc",(i,6))
+            self.plateau[0][i] = ordre_piece[i]("noir",(i,0))
+            self.plateau[-1][i] = ordre_piece[i]("blanc",(i,7))
 
     def afficher_plateau(self):
-        """Affiche le plateau sous forme de grille."""
-        for row in self.plateau:
-            print(" | ".join(str(piece) if piece else "." for piece in row))
-            print("-" * 40)
+        for ligne in self.plateau :
+            print ( " | ".join(str(piece) if piece else "." for piece in ligne) )
+                     
+            print("-"*30)
 
-    def case_est_vide(self, position: tuple):
-        """Vérifie si une case est vide."""
-        x, y = position
-        return self.plateau[y][x] is None
+    def __repr__(self):  
+        res = "     " + "    ".join("ABCDEFGH") + "\n"  
+        res += "  " + "-" * 41 + "\n"
 
-    def case_occupee_par_adversaire(self, position: tuple, couleur: str):
-        """Vérifie si la case est occupée par une pièce adverse."""
-        x, y = position
-        piece = self.plateau[x][y]
-        return piece is not None and piece.couleur != couleur
+        for i, ligne in enumerate(self.plateau, start=1):  
+            res += str(i) + " "  # Numérotation des lignes
+            for piece in ligne:  
+                res += " | "
+                res += str(piece) if piece else ". "
+            res += " |\n"
+            res += "  " + "-" * 41 + "\n"
+        
+        return res
 
-    def deplacer_piece(self, piece, nouvelle_position):
-        """Déplace une pièce si le déplacement est valide."""
-        if nouvelle_position in piece.deplacement_possible(self):
-            x, y = piece.position
-            self.plateau[x][y] = None  # Retirer la pièce de sa position actuelle
-            piece.position = nouvelle_position
-            nx, ny = nouvelle_position
-            self.plateau[nx][ny] = piece  # Déplacer la pièce
+    def case_est_vide(self,position:tuple):
+        x,y = position
+        if self.plateau[y][x] == None :
             return True
+        
         return False
 
+    def case_occupe_par_adversaire(self,position:tuple,couleur:str):
+        x,y = position
+        if not self.case_est_vide(position)  and self.plateau[y][x].couleur != couleur : 
+            return True
+        
+        return False
 
-class Joueur:
-    def __init__(self, nom, couleur):
+class Joueur :
+    def __init__(self,nom,couleur) :
         self.nom = nom
         self.couleur = couleur
 
     def __str__(self):
         return f"{self.nom} ({self.couleur})"
 
-
 class Piece:
+    
     def __init__(self, couleur, position):
         self.couleur = couleur
         self.position = position
-
+        
     def __str__(self):
-        return self.__class__.__name__[0] + ("B" if self.couleur == "Blanc" else "N")
-
-    def deplacement_possible(self, plateau: Plateau):
-        """Renvoie la liste des déplacements possibles (à implémenter dans chaque sous-classe)."""
-        return []
-
+        return self.__class__.__name__[0] + ("B" if self.couleur == "blanc" else "N")
 
 class Pion(Piece):
-    def deplacement_possible(self, plateau: Plateau):
-        x, y = self.position
+    def deplacement_possible(self, plateau:Plateau) -> list:
+        x,y = self.position
+        direction = -1 if self.couleur == "blanc" else 1
+        
         deplacements = []
-        direction = -1 if self.couleur == "Blanc" else 1  # Blanc avance vers le haut, Noir vers le bas
+        nouvelle_position = (x,y + direction)
 
-        # Avancer d'une case
-        nouvelle_position = (x + direction, y)
-        if 0 <= nouvelle_position[0] < 8 and plateau.case_est_vide(nouvelle_position):
+        if 0 <= nouvelle_position[1] < 8 and plateau.case_est_vide(nouvelle_position):
+
             deplacements.append(nouvelle_position)
 
-        # Avancer de deux cases au premier coup
-        nouvelle_position = (x ,  y +  2 * direction)
-        if (self.couleur == "Blanc" and y == 6) or (self.couleur == "Noir" and y == 1):
-            if plateau.case_est_vide(nouvelle_position):
+        nouvelle_position = (x,y + direction*2)
+        if 0 <= nouvelle_position[1] < 8 and plateau.case_est_vide(nouvelle_position) and ( (self.couleur == "blanc" and y == 6 )or (self.couleur == "noir" and y == 1)):
+
+            deplacements.append(nouvelle_position)
+
+        for dx in [-1,1] :
+            nouvelle_position = (x + dx , y + direction)
+
+            if 0 <= nouvelle_position[1] < 8 and plateau.case_occupe_par_adversaire(nouvelle_position,self.couleur) and 0 <= nouvelle_position[0] < 8:
+
                 deplacements.append(nouvelle_position)
 
-        # Captures diagonales
-        for dx in [-1, 1]:
-            nouvelle_position = (x + dx, y + direction)
-            if 0 <= nouvelle_position[0] < 8 and 0 <= nouvelle_position[1] < 8:
-                if plateau.case_occupee_par_adversaire(nouvelle_position, self.couleur):
-                    deplacements.append(nouvelle_position)
-
         return deplacements
-
-
 
 class Tour(Piece):
-    def deplacement_possible(self, plateau: Plateau):
-        x, y = self.position
+    def deplacement_possible(self, plateau:Plateau) -> list:
+        x,y = self.position
         deplacements = []
 
-        for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-            nx, ny = x + dx, y + dy
-            while 0 <= nx < 8 and 0 <= ny < 8:
-                if plateau.case_est_vide((nx, ny)):
-                    deplacements.append((nx, ny))
-                elif plateau.case_occupee_par_adversaire((nx, ny), self.couleur):
-                    deplacements.append((nx, ny))
+        for dx,dy in [(1,0),(-1,0),(0,1),(0,-1)] :
+            nx,ny = dx + x , dy + y
+            
+            while 0 <= nx < 8 and 0 <= ny < 8 :
+
+                if plateau.case_est_vide((nx,ny))  :
+                    
+                    deplacements.append((nx,ny))
+                    
+                elif plateau.case_occupe_par_adversaire((nx,ny),self.couleur) :
+
+                    deplacements.append((nx,ny))
                     break
-                else:
+
+
+                else : 
                     break
-                nx, ny = nx + dx, ny + dy
+
+                nx,ny = nx + dx , ny + dy
 
         return deplacements
-
 
 class Cavalier(Piece):
-    def deplacement_possible(self, plateau: Plateau):
-        x, y = self.position
+    def deplacement_possible(self, plateau:Plateau) -> list:
+        x,y = self.position
         deplacements = []
+        mouvement = [(1,-2),(-1,2),(2,-1),(-2,1),(2,1),(1,2),(-2,-1),(-1,-2)]
 
-        mouvements = [(2, 1), (2, -1), (-2, 1), (-2, -1),
-                      (1, 2), (1, -2), (-1, 2), (-1, -2)]
+        for dx,dy in mouvement :
+            nx,ny = dx + x , dy + y
 
-        for dx, dy in mouvements:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < 8 and 0 <= ny < 8 and (plateau.case_est_vide((nx, ny)) or plateau.case_occupee_par_adversaire((nx, ny), self.couleur)):
-                deplacements.append((nx, ny))
+            if 0 <= nx < 8 and  0 <= ny < 8 and ( plateau.case_est_vide((nx,ny)) or plateau.case_occupe_par_adversaire((nx,ny),self.couleur) ):
 
-        return deplacements
+                deplacements.append((nx,ny))
 
-
-class Fou(Piece):
-    def deplacement_possible(self, plateau: Plateau):
-        x, y = self.position
-        deplacements = []
-
-        for dx, dy in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
-            nx, ny = x + dx, y + dy
-            while 0 <= nx < 8 and 0 <= ny < 8:
-                if plateau.case_est_vide((nx, ny)):
-                    deplacements.append((nx, ny))
-                elif plateau.case_occupee_par_adversaire((nx, ny), self.couleur):
-                    deplacements.append((nx, ny))
-                    break
-                else:
-                    break
-                nx, ny = nx + dx, ny + dy
-
-        return deplacements
-
-
-class Dame(Piece):
-    def deplacement_possible(self, plateau: Plateau):
-        return Tour(self.couleur, self.position).deplacement_possible(plateau) + Fou(self.couleur, self.position).deplacement_possible(plateau)
-
+        return deplacements    
 
 class Roi(Piece):
-    def deplacement_possible(self, plateau: Plateau):
-        x, y = self.position
+    def deplacement_possible(self, plateau:Plateau) -> list:
+        x,y = self.position
         deplacements = []
 
-        for dx, dy in [(-1, -1), (-1, 0), (-1, 1),
-                       (0, -1), (0, 1),
-                       (1, -1), (1, 0), (1, 1)]:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < 8 and 0 <= ny < 8 and (plateau.case_est_vide((nx, ny)) or plateau.case_occupee_par_adversaire((nx, ny), self.couleur)):
-                deplacements.append((nx, ny))
+        mouvement = [(1,0),(1,1),(0,1),(0,-1),(1,-1),(-1,-1),(-1,0),(-1,1)]
+
+        for dx,dy in mouvement :
+            nx,ny = dx + x , dy , y
+
+            if 0 <= nx < 8 and  0 <= ny < 8 and ( plateau.case_est_vide((nx,ny)) or plateau.case_occupe_par_adversaire((nx,ny),self.couleur) ):
+
+                deplacements.append((nx,ny))
+
+        return deplacements 
+
+class Fou(Piece):
+    def deplacement_possible(self, plateau:Plateau) -> list:
+        x,y = self.position
+        deplacements = []
+
+        mouvements = [(1,1),(-1,-1),(-1,1),(1,-1)]
+
+        for dx , dy in mouvements :
+            nx,ny = dx + x , dy + y
+
+            while 0 <= nx < 8 and  0 <= ny < 8 :
+
+                if plateau.case_est_vide((nx,ny)) :
+                    deplacements.append((nx,ny))
+
+                elif plateau.case_occupe_par_adversaire((nx,ny),self.couleur) :
+                    deplacements.append((nx,ny))
+                    break
+
+                else :
+                    break
+
+                nx,ny = nx + dx , ny + dy    
 
         return deplacements
 
+class Dame(Piece):
+    def deplacement_possible(self, plateau:Plateau) -> list:
+        
+        deplacements = Tour(self.couleur,self.position).deplacement_possible(plateau) + Fou(self.couleur,self.position).deplacement_possible(plateau)
+        
+        return deplacements
 
-class Game:
-    def __init__(self, joueur1, joueur2):
-        self.plateau = Plateau()
-        self.joueurs = [joueur1, joueur2]
-        self.tour_actuel = 0  # 0 pour le joueur1, 1 pour le joueur2
+def demander_deplacement():
 
-    def jouer(self):
-        """Boucle de jeu simple."""
-        while True:
-            self.plateau.afficher_plateau()
-            joueur = self.joueurs[self.tour_actuel]
-            print(f"Tour de {joueur.nom} ({joueur.couleur})")
+    try : 
 
-            x, y = map(int, input("Entrez les coordonnées de la pièce à déplacer (x y) : ").split())
-            piece = self.plateau.plateau[x][y]
+        piece_select = input("choisisser une piece ")
+        x = convert_str_to_int(piece_select[0])
+        y = int(piece_select[1]) - 1
+        piece_select = (x,y)
 
-            if piece and piece.couleur == joueur.couleur:
-                print(f"Déplacements possibles : {piece.deplacement_possible(self.plateau)}")
-                nx, ny = map(int, input("Entrez la nouvelle position (x y) : ").split())
+        mouvement = input("choisisser une destination pour la piece ")
+        x = convert_str_to_int(mouvement[0])
+        y = int(mouvement[1]) - 1
+        mouvement = (x,y)
 
-                if self.plateau.deplacer_piece(piece, (nx, ny)):
-                    self.tour_actuel = 1 - self.tour_actuel  # Changer de joueur
-                else:
-                    print("Déplacement invalide.")
-            else:
-                print("Sélection invalide.")
+    except Exception as e :
+        print("vous avez choisis une valeur incorecte, réessayer")
+        return demander_deplacement()
+    
+    return (piece_select , mouvement)
 
 
-# Lancer une partie
-joueur1 = Joueur("Alice", "Blanc")
-joueur2 = Joueur("Bob", "Noir")
-jeu = Game(joueur1, joueur2)
-jeu.jouer()
+def convert_str_to_int (l):
+
+    res = ord(l.upper()) - ord("A")
+
+    if 0 <= res <= 7 :
+        return res
+    
+    raise ValueError (" la lettre doit être entre A et H")
+
+
+def game():
+    """Fonction principale gérant le cycle de la partie d'échecs."""
+    plateau = Plateau()
+    joueur_blanc = Joueur("Joueur Blanc", "blanc")
+    joueur_noir = Joueur("Joueur Noir", "noir")
+    joueur_actuel = joueur_blanc
+    tour = 1
+
+    print("Bienvenue dans le jeu d'échecs !")
+    print(plateau)
+
+    while True:
+        print(f"\nTour {tour} - Au tour de {joueur_actuel}")
+
+
+  
+        selection, destination = demander_deplacement()
+        x_depart, y_depart = selection
+        x_arrivee, y_arrivee = destination
+
+        piece_a_bouger = plateau.plateau[y_depart][x_depart]
+
+        # Vérifier si une pièce a été sélectionnée et si elle appartient au joueur actuel
+        if piece_a_bouger is None:
+            print("Case de départ vide. Veuillez réessayer.")
+            continue
+        if piece_a_bouger.couleur != joueur_actuel.couleur:
+            print("Ce n'est pas votre pièce. Veuillez réessayer.")
+            continue
+
+        # 2. Obtenir les déplacements possibles pour la pièce sélectionnée
+        deplacements_possibles = piece_a_bouger.deplacement_possible(plateau)
+        print(f"Déplacements possibles pour {piece_a_bouger} à {piece_a_bouger.position}: {deplacements_possibles}")
+        
+        # 3. Vérifier si la destination choisie est parmi les déplacements possibles
+        if destination not in deplacements_possibles:
+            print("Mouvement illégal. Veuillez réessayer.")
+            continue
+
+        # 4. Effectuer le mouvement (mise à jour du plateau)
+        piece_a_bouger.position = destination
+        plateau.plateau[y_arrivee][x_arrivee] = piece_a_bouger
+        plateau.plateau[y_depart][x_depart] = None
+
+        print(plateau) # Afficher le plateau après le mouvement
+
+        # 5. Vérifier les conditions de fin de partie (échec et mat, pat, etc.)
+        # Cette partie nécessite une logique plus complexe à implémenter
+        # Il faut vérifier si le roi adverse est en échec, et s'il a des mouvements légaux.
+
+        # Pour l'instant, on se contente d'alterner les joueurs
+        if joueur_actuel == joueur_blanc:
+            joueur_actuel = joueur_noir
+        else:
+            joueur_actuel = joueur_blanc
+            tour += 1 # Incrémenter le tour après le mouvement du joueur noir
+
+
+        # Ajouter une condition de sortie temporaire pour éviter une boucle infinie lors des tests
+        if tour > 100: # Par exemple, après 100 tours
+            print("Nombre de tours maximum atteint (pour test).")
+            break
+
+    print("Fin de la partie.")
+
+if __name__ == "__main__":
+    game()
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
