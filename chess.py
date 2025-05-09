@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 
 """
 class :
@@ -12,6 +14,17 @@ class :
         Pion
     Game
     victoire/defaite/egalite
+    
+    
+    vérifier que notre mouvement ne nous pas en echec car sinon mouvement ilégal .
+    
+    faire affichage graphique et rendre le jeux plus jouable 
+    
+    
+    
+    
+    améliorer la complexité pour le mat ( avec un tableau de pièces)
+    
 """
 
 class Plateau :
@@ -19,7 +32,18 @@ class Plateau :
     def __init__(self) :
 
         self.plateau = [[None for i in range(8)] for y in range(8)]
-        self.initialiseur_plateau()
+        #self.initialiseur_plateau()
+        self.init_plateau_test_unit()
+    
+    """TEST UNITAIRE UNIQUEMENT POUR LA PRODUCTION"""
+    
+    def init_plateau_test_unit(self):
+        self.plateau[0][0] = Roi("noir", (0, 0))
+        self.plateau[1][3] = Dame("blanc", (3, 1))
+        self.plateau[2][1] = Roi("blanc", (1,2))
+        self.plateau[1][5] = Pion("blanc", (5,1))
+        
+    """TEST UNITAIRE UNIQUEMENT POUR LA PRODUCTION"""    
         
     def initialiseur_plateau(self):
 
@@ -64,7 +88,9 @@ class Plateau :
             return True
         
         return False
+    
 
+        
 class Joueur :
     def __init__(self,nom,couleur) :
         self.nom = nom
@@ -72,6 +98,37 @@ class Joueur :
 
     def __str__(self):
         return f"{self.nom} ({self.couleur})"
+    
+    def est_en_echec(self, plateau):
+        #Trouver le roi 
+        for ligne in plateau.plateau:
+            for piece in ligne:
+                if isinstance(piece, Roi) and piece.couleur == self.couleur:
+                    roi_pos = piece.position
+                    break
+        #vérifier si une pièce adverse peut l'atteindre (améliorable en regardant que les case qui on potentiellement accès au roi) 
+        for ligne in plateau.plateau:
+            for piece in ligne:
+                if piece and piece.couleur != self.couleur:
+                    if roi_pos in piece.deplacement_possible(plateau):
+                        return True
+        return False
+    
+    def a_au_moins_un_coup_legal(self, plateau):
+        for y in range(8):
+            for x in range(8):
+                piece = plateau.plateau[y][x]
+                if piece and piece.couleur == self.couleur:
+                    for move in piece.deplacement_possible(plateau):
+                        copie = deepcopy(plateau)
+                        copie.plateau[y][x] = None
+                        piece_copie = deepcopy(piece)
+                        piece_copie.position = move
+                        copie.plateau[move[1]][move[0]] = piece_copie
+                        if not self.est_en_echec(copie):
+                            return True
+                        
+        return False
 
 class Piece:
     
@@ -158,7 +215,7 @@ class Roi(Piece):
         mouvement = [(1,0),(1,1),(0,1),(0,-1),(1,-1),(-1,-1),(-1,0),(-1,1)]
 
         for dx,dy in mouvement :
-            nx,ny = dx + x , dy , y
+            nx,ny = dx + x , dy + y
 
             if 0 <= nx < 8 and  0 <= ny < 8 and ( plateau.case_est_vide((nx,ny)) or plateau.case_occupe_par_adversaire((nx,ny),self.couleur) ):
 
@@ -273,6 +330,17 @@ def game():
         piece_a_bouger.position = destination
         plateau.plateau[y_arrivee][x_arrivee] = piece_a_bouger
         plateau.plateau[y_depart][x_depart] = None
+        
+        #promotion
+        if isinstance(piece_a_bouger, Pion) and (y_arrivee == 0 or y_arrivee == 7):
+            while True :
+                choix = input("Promotion ! Choisissez (d)ame, (t)our, (f)ou, (c)cavalier :").lower()
+                if choix in "dtfc":
+                    classes = {"d": Dame, 't': Tour, 'f': Fou, 'c': Cavalier}
+                    plateau.plateau[y_arrivee][x_arrivee] = classes[choix](piece_a_bouger.couleur, (x_arrivee, y_arrivee))
+                    break
+                else :
+                    print("Choix invalide.")
 
         print(plateau) # Afficher le plateau après le mouvement
 
@@ -292,27 +360,20 @@ def game():
         if tour > 100: # Par exemple, après 100 tours
             print("Nombre de tours maximum atteint (pour test).")
             break
-
+        
+        if joueur_actuel.est_en_echec(plateau):
+            if not joueur_actuel.a_au_moins_un_coup_legal(plateau):
+                print(f"Echec et mat ! {joueur_actuel} a perdu.")
+                break
+            else:
+                print(f"{joueur_actuel} est en échec.")
+        elif not joueur_actuel.a_au_moins_un_coup_legal(plateau):
+            print("Pat ! Match nul.")
+            break
+        
     print("Fin de la partie.")
 
 if __name__ == "__main__":
     game()
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
 
 
