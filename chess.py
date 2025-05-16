@@ -1,4 +1,6 @@
 from copy import deepcopy
+import pygame 
+import sys
 
 
 """
@@ -16,7 +18,7 @@ class :
     victoire/defaite/egalite
     
     
-    vérifier que notre mouvement ne nous pas en echec car sinon mouvement ilégal .
+    
     
     faire affichage graphique et rendre le jeux plus jouable 
     
@@ -26,6 +28,12 @@ class :
     améliorer la complexité pour le mat ( avec un tableau de pièces)
     
 """
+
+TAILLE_CASE = 80
+TAILLE_PLATEAU = TAILLE_CASE * 8
+FPS = 10
+
+
 
 class Plateau :
 
@@ -39,9 +47,10 @@ class Plateau :
     
     def init_plateau_test_unit(self):
         self.plateau[0][0] = Roi("noir", (0, 0))
-        self.plateau[1][3] = Dame("blanc", (3, 1))
+        self.plateau[3][1] = Dame("blanc", (1, 3))
         self.plateau[2][1] = Roi("blanc", (1,2))
         self.plateau[1][5] = Pion("blanc", (5,1))
+        self.plateau[7][1] = Tour("noir", (1,7))
         
     """TEST UNITAIRE UNIQUEMENT POUR LA PRODUCTION"""    
         
@@ -286,14 +295,95 @@ def convert_str_to_int (l):
     
     raise ValueError (" la lettre doit être entre A et H")
 
+def charger_images():
+    types = ['p', 'k', 'n', 'b', 'q', 'r']
+    couleurs = ['w', 'b']
+    images = {}
+    
+    for t in types :
+        for c in couleurs :
+            chemin = f"assets/{c}{t}.png"
+            image = pygame.image.load(chemin)
+            image = pygame.transform.scale(image, (TAILLE_CASE, TAILLE_CASE))
+            images[f"{c}{t}"] = image
+    return images
+
+def get_image_for_piece(piece, images):
+    if not piece:
+        return None
+    
+    type_map = {
+        "Pion"      : 'p',
+        "Roi"       : 'k',
+        "Dame"      : 'q',
+        "Tour"      : 'r',
+        "Fou"       : 'b',
+        "Cavalier"  : 'n'
+    }
+        
+    couleur = 'w' if piece.couleur == "blanc" else 'b'
+    
+    nom_type = type_map[piece.__class__.__name__]
+    
+    return images.get(f"{couleur}{nom_type}")
+
+
+def afficher_plateau(screen, plateau, images, case_selectionne=None):
+    couleurs = [(240,217,180), (180, 130, 99)]
+    
+    for y in range(8):
+        for x in range(8):
+            rect = pygame.Rect(x*TAILLE_CASE, y*TAILLE_CASE, TAILLE_CASE, TAILLE_CASE)
+            couleurs_case = couleurs[(x + y) % 2]
+            pygame.draw.rect(screen, couleurs_case, rect)
+            
+            if case_selectionne == (x, y) :
+                pygame.draw.rect(screen, (255, 255, 0), rect, 5)
+            
+            piece = plateau.plateau[y][x]
+            image = get_image_for_piece(piece, images)
+            if image :
+                screen.blit(image, rect)
+                
+            
 
 def game():
+    
+    pygame.init()
+    screen = pygame.display.set_mode((TAILLE_PLATEAU, TAILLE_PLATEAU))
+    pygame.display.set_caption("Echecs avec Pygame")
+    clock = pygame.time.Clock()
+    
+    
+    images = charger_images()
+    case_selectionne = None
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     """Fonction principale gérant le cycle de la partie d'échecs."""
     plateau = Plateau()
     joueur_blanc = Joueur("Joueur Blanc", "blanc")
     joueur_noir = Joueur("Joueur Noir", "noir")
     joueur_actuel = joueur_blanc
     tour = 1
+    
+    
+    
+    afficher_plateau(screen, plateau, images, case_selectionne)
+   
 
     print("Bienvenue dans le jeu d'échecs !")
     print(plateau)
@@ -319,13 +409,27 @@ def game():
 
         # 2. Obtenir les déplacements possibles pour la pièce sélectionnée
         deplacements_possibles = piece_a_bouger.deplacement_possible(plateau)
-        print(f"Déplacements possibles pour {piece_a_bouger} à {piece_a_bouger.position}: {deplacements_possibles}")
+
         
         # 3. Vérifier si la destination choisie est parmi les déplacements possibles
         if destination not in deplacements_possibles:
             print("Mouvement illégal. Veuillez réessayer.")
             continue
-
+        
+        #3.1
+            #copie des éléments
+        copie_plateau = deepcopy(plateau)
+        piece_simulee = deepcopy(piece_a_bouger)
+            #simulation du mouvement dans la copie
+        piece_simulee.position = destination
+        copie_plateau.plateau[y_arrivee][x_arrivee] = piece_simulee
+        copie_plateau.plateau[y_depart][x_depart] = None
+        
+            #vérifie si coup jouable ( donc pas de mise en echec )
+        if joueur_actuel.est_en_echec(copie_plateau):
+            print("Ce coup vous met en échec. Mouvement interdit")
+            continue
+                
         # 4. Effectuer le mouvement (mise à jour du plateau)
         piece_a_bouger.position = destination
         plateau.plateau[y_arrivee][x_arrivee] = piece_a_bouger
@@ -372,8 +476,14 @@ def game():
             break
         
     print("Fin de la partie.")
-
+    pygame.quit()
+    sys.exit()
+    
 if __name__ == "__main__":
     game()
+    
+    
+    
+
 
 
