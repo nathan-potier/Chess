@@ -40,29 +40,31 @@ class Plateau :
     def __init__(self) :
 
         self.plateau = [[None for i in range(8)] for y in range(8)]
-        #self.initialiseur_plateau()
-        self.init_plateau_test_unit()
+        self.initialiser_plateau()
+        #self.init_plateau_test_unit()
     
     """TEST UNITAIRE UNIQUEMENT POUR LA PRODUCTION"""
     
     def init_plateau_test_unit(self):
         self.plateau[0][0] = Roi("noir", (0, 0))
         self.plateau[3][1] = Dame("blanc", (1, 3))
-        self.plateau[2][1] = Roi("blanc", (1,2))
+        self.plateau[7][4] = Roi("blanc", (4,7))
         self.plateau[1][5] = Pion("blanc", (5,1))
-        self.plateau[7][1] = Tour("noir", (1,7))
+        self.plateau[1][1] = Pion("noir", (1,1))
+        self.plateau[6][1] = Pion("blanc", (1,6))
+        
         
     """TEST UNITAIRE UNIQUEMENT POUR LA PRODUCTION"""    
         
-    def initialiseur_plateau(self):
-
-        ordre_piece = [Tour,Cavalier,Fou,Dame,Roi,Fou,Cavalier,Tour]
-
-        for i in range(8) :
-            self.plateau[1][i] = Pion("noir", (i,1))
-            self.plateau[-2][i] = Pion("blanc",(i,6))
-            self.plateau[0][i] = ordre_piece[i]("noir",(i,0))
-            self.plateau[-1][i] = ordre_piece[i]("blanc",(i,7))
+    def initialiser_plateau(self):
+            ordre_piece = [Tour, Cavalier, Fou, Dame, Roi, Fou, Cavalier, Tour]
+            for i in range(8):
+                self.plateau[1][i] = Pion("noir", (i, 1))
+                self.plateau[6][i] = Pion("blanc", (i, 6))
+                self.plateau[0][i] = ordre_piece[i]("noir", (i, 0))
+                self.plateau[7][i] = ordre_piece[i]("blanc", (i, 7))
+            
+   
 
     def afficher_plateau(self):
         for ligne in self.plateau :
@@ -352,25 +354,12 @@ def game():
     pygame.init()
     screen = pygame.display.set_mode((TAILLE_PLATEAU, TAILLE_PLATEAU))
     pygame.display.set_caption("Echecs avec Pygame")
-    clock = pygame.time.Clock()
+    
     
     
     images = charger_images()
     case_selectionne = None
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    message = ""
     
     
     """Fonction principale gérant le cycle de la partie d'échecs."""
@@ -378,102 +367,125 @@ def game():
     joueur_blanc = Joueur("Joueur Blanc", "blanc")
     joueur_noir = Joueur("Joueur Noir", "noir")
     joueur_actuel = joueur_blanc
-    tour = 1
+    tour = 0
     
     
     
-    afficher_plateau(screen, plateau, images, case_selectionne)
+    
+    clock = pygame.time.Clock()
+    
+    running = True
+    
+    
+    
+    
+    
+    
+
+    
+    
+
    
 
-    print("Bienvenue dans le jeu d'échecs !")
-    print(plateau)
-
-    while True:
-        print(f"\nTour {tour} - Au tour de {joueur_actuel}")
 
 
-  
-        selection, destination = demander_deplacement()
-        x_depart, y_depart = selection
-        x_arrivee, y_arrivee = destination
+    while running:
+        clock.tick(FPS)
 
-        piece_a_bouger = plateau.plateau[y_depart][x_depart]
-
-        # Vérifier si une pièce a été sélectionnée et si elle appartient au joueur actuel
-        if piece_a_bouger is None:
-            print("Case de départ vide. Veuillez réessayer.")
-            continue
-        if piece_a_bouger.couleur != joueur_actuel.couleur:
-            print("Ce n'est pas votre pièce. Veuillez réessayer.")
-            continue
-
-        # 2. Obtenir les déplacements possibles pour la pièce sélectionnée
-        deplacements_possibles = piece_a_bouger.deplacement_possible(plateau)
-
-        
-        # 3. Vérifier si la destination choisie est parmi les déplacements possibles
-        if destination not in deplacements_possibles:
-            print("Mouvement illégal. Veuillez réessayer.")
-            continue
-        
-        #3.1
-            #copie des éléments
-        copie_plateau = deepcopy(plateau)
-        piece_simulee = deepcopy(piece_a_bouger)
-            #simulation du mouvement dans la copie
-        piece_simulee.position = destination
-        copie_plateau.plateau[y_arrivee][x_arrivee] = piece_simulee
-        copie_plateau.plateau[y_depart][x_depart] = None
-        
-            #vérifie si coup jouable ( donc pas de mise en echec )
-        if joueur_actuel.est_en_echec(copie_plateau):
-            print("Ce coup vous met en échec. Mouvement interdit")
-            continue
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            elif event.type == pygame.MOUSEBUTTONDOWN :
                 
-        # 4. Effectuer le mouvement (mise à jour du plateau)
-        piece_a_bouger.position = destination
-        plateau.plateau[y_arrivee][x_arrivee] = piece_a_bouger
-        plateau.plateau[y_depart][x_depart] = None
+                x, y = pygame.mouse.get_pos()
+                
+                case_x, case_y = x // TAILLE_CASE, y // TAILLE_CASE
+
+                if case_selectionne is None :
+                    piece = plateau.plateau[case_y][case_x]
+                    if piece and piece.couleur == joueur_actuel.couleur:
+                        case_selectionne = (case_x, case_y)
+                else:
+                    x_depart, y_depart = case_selectionne
+                    destination = (case_x, case_y)
+                    x_arrivee, y_arrivee = destination
+                    
+                    piece_a_bouger = plateau.plateau[y_depart][x_depart]
+                    
+                    if destination not in piece_a_bouger.deplacement_possible(plateau) :
+                        print("Mouvement illégal")
+                        case_selectionne = None
+                        continue
+                    
+                    
+                    
+  
+
+                    #3.1
+                        #copie des éléments
+                    copie_plateau = deepcopy(plateau)
+                    piece_simulee = deepcopy(piece_a_bouger)
+                        #simulation du mouvement dans la copie
+                    piece_simulee.position = destination
+                    copie_plateau.plateau[y_arrivee][x_arrivee] = piece_simulee
+                    copie_plateau.plateau[y_depart][x_depart] = None
         
-        #promotion
-        if isinstance(piece_a_bouger, Pion) and (y_arrivee == 0 or y_arrivee == 7):
-            while True :
-                choix = input("Promotion ! Choisissez (d)ame, (t)our, (f)ou, (c)cavalier :").lower()
-                if choix in "dtfc":
-                    classes = {"d": Dame, 't': Tour, 'f': Fou, 'c': Cavalier}
-                    plateau.plateau[y_arrivee][x_arrivee] = classes[choix](piece_a_bouger.couleur, (x_arrivee, y_arrivee))
-                    break
-                else :
-                    print("Choix invalide.")
-
-        print(plateau) # Afficher le plateau après le mouvement
-
-        # 5. Vérifier les conditions de fin de partie (échec et mat, pat, etc.)
-        # Cette partie nécessite une logique plus complexe à implémenter
-        # Il faut vérifier si le roi adverse est en échec, et s'il a des mouvements légaux.
-
-        # Pour l'instant, on se contente d'alterner les joueurs
-        if joueur_actuel == joueur_blanc:
-            joueur_actuel = joueur_noir
-        else:
-            joueur_actuel = joueur_blanc
-            tour += 1 # Incrémenter le tour après le mouvement du joueur noir
-
-
-        # Ajouter une condition de sortie temporaire pour éviter une boucle infinie lors des tests
-        if tour > 100: # Par exemple, après 100 tours
-            print("Nombre de tours maximum atteint (pour test).")
-            break
+                        #vérifie si coup jouable ( donc pas de mise en echec )
+                    if joueur_actuel.est_en_echec(copie_plateau):
+                        print("Ce coup vous met en échec. Mouvement interdit")
+                        case_selectionne = None
+                        continue
+                
+                    # 4. Effectuer le mouvement (mise à jour du plateau)
+                    piece_a_bouger.position = destination
+                    plateau.plateau[y_arrivee][x_arrivee] = piece_a_bouger
+                    plateau.plateau[y_depart][x_depart] = None
         
-        if joueur_actuel.est_en_echec(plateau):
-            if not joueur_actuel.a_au_moins_un_coup_legal(plateau):
-                print(f"Echec et mat ! {joueur_actuel} a perdu.")
-                break
-            else:
-                print(f"{joueur_actuel} est en échec.")
-        elif not joueur_actuel.a_au_moins_un_coup_legal(plateau):
-            print("Pat ! Match nul.")
-            break
+                    #promotion
+                    if isinstance(piece_a_bouger, Pion) and (y_arrivee == 0 or y_arrivee == 7):
+                        while True :
+                            choix = input("Promotion ! Choisissez (d)ame, (t)our, (f)ou, (c)cavalier :").lower()
+                            if choix in "dtfc":
+                                classes = {"d": Dame, 't': Tour, 'f': Fou, 'c': Cavalier}
+                                plateau.plateau[y_arrivee][x_arrivee] = classes[choix](piece_a_bouger.couleur, (x_arrivee, y_arrivee))
+                                break
+                            else :
+                                print("Choix invalide.")
+
+                    
+
+                    # 5. Vérifier les conditions de fin de partie (échec et mat, pat, etc.)
+                    # Cette partie nécessite une logique plus complexe à implémenter
+                    # Il faut vérifier si le roi adverse est en échec, et s'il a des mouvements légaux.
+
+                    # Pour l'instant, on se contente d'alterner les joueurs
+                    if joueur_actuel == joueur_blanc:
+                        joueur_actuel = joueur_noir
+                    else:
+                        joueur_actuel = joueur_blanc
+                        tour += 1 # Incrémenter le tour après le mouvement du joueur noir
+
+
+                    # Ajouter une condition de sortie temporaire pour éviter une boucle infinie lors des tests
+                    if tour > 100: # Par exemple, après 100 tours
+                        print("Nombre de tours maximum atteint (pour test).")
+                        break
+        
+                    if joueur_actuel.est_en_echec(plateau):
+                        if not joueur_actuel.a_au_moins_un_coup_legal(plateau):
+                            print(f"Echec et mat ! {joueur_actuel} a perdu.")
+                            running = False
+                        else:
+                            print(f"{joueur_actuel} est en échec.")
+                    elif not joueur_actuel.a_au_moins_un_coup_legal(plateau):
+                        print("Pat ! Match nul.")
+                        running = False
+                        
+                    case_selectionne = None
+                    
+        afficher_plateau(screen, plateau, images, case_selectionne)
+        pygame.display.flip()
         
     print("Fin de la partie.")
     pygame.quit()
